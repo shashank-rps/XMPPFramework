@@ -241,12 +241,11 @@ NSString *const XMPPMUCLightBlocking = @"urn:xmpp:muclight:0#blocking";
 
 	XMPPJID *from = message.from;
 	NSXMLElement *x = [message elementForName:@"x" xmlns:XMPPRoomLightAffiliations];
-	NSXMLElement *user  = [x elementForName:@"user"];
-	NSString *affiliation = [user attributeForName:@"affiliation"].stringValue;
-
-	if (affiliation) {
-		[multicastDelegate xmppMUCLight:self changedAffiliation:affiliation roomJID:from];
-	}
+    for (NSXMLElement *user in [x elementsForName:@"user"]) {
+        NSString *affiliation = [user attributeForName:@"affiliation"].stringValue;
+        XMPPJID *userJID = [XMPPJID jidWithString:user.stringValue];
+        [multicastDelegate xmppMUCLight:self changedAffiliation:affiliation userJID:userJID roomJID:from];
+    }
 }
 
 - (void)xmppStream:(XMPPStream *)sender didRegisterModule:(id)module {
@@ -278,7 +277,7 @@ NSString *const XMPPMUCLightBlocking = @"urn:xmpp:muclight:0#blocking";
 			// This way the isMUCRoomElement will still remain accurate
 			// for presence elements that may arrive momentarily.
 
-			double delayInSeconds = 30.0;
+			double delayInSeconds = [self delayInSeconds];
 			dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, delayInSeconds * NSEC_PER_SEC);
 			dispatch_after(popTime, moduleQueue, ^{ @autoreleasepool {
 				[rooms removeObject:roomJID];
@@ -300,6 +299,10 @@ NSString *const XMPPMUCLightBlocking = @"urn:xmpp:muclight:0#blocking";
 	}
 
 	return NO;
+}
+
+- (double) delayInSeconds {
+	return 30.0;
 }
 
 @end
